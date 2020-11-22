@@ -1,4 +1,4 @@
-# Breaking Changes hahahhahaa noob
+# Breaking Changes
 
 ## May 25th, 2019
 
