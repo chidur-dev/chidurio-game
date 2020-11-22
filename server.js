@@ -888,6 +888,7 @@ class io_fastspin extends IO {
     };
   }
 }
+
 class io_reversespin extends IO {
   constructor(b) {
     super(b);
@@ -1304,6 +1305,8 @@ class Gun {
         });
         this.controllers = toAdd.concat(this.controllers);
       }
+      this.onShoot = (info.PROPERTIES.ON_SHOOT == null) ? 
+    null : info.PROPERTIES.ON_SHOOT;
       this.autofire =
         info.PROPERTIES.AUTOFIRE == null ? false : info.PROPERTIES.AUTOFIRE;
       this.altFire =
@@ -1341,6 +1344,8 @@ class Gun {
         info.PROPERTIES.NEGATIVE_RECOIL == null
           ? false
           : info.PROPERTIES.NEGATIVE_RECOIL;
+       this.shootOnDeath = (info.PROPERTIES.SHOOT_ON_DEATH == null) ?
+          false : info.PROPERTIES.SHOOT_ON_DEATH;
        if (info.PROPERTIES.COLOR!=null&&info.PROPERTIES!=null){
         this.color=info.PROPERTIES.COLOR
       }
@@ -1473,6 +1478,16 @@ class Gun {
               : true;
             // Cycle down
             this.cycle -= 1;
+            if (this.onShoot != null) {
+  switch (this.onShoot) {
+  case "mixedNum":
+    if (this.body.master.isAlive()) this.body.master.define(Class.mixedNumberTrap);
+    break;
+  default: // This may avoid some error
+    util.warn("Unknown ON_SHOOT value: " + this.onShoot + "!");
+    this.onShoot = null;
+  }
+}
           }
         } // If we're not shooting, only cycle up to where we'll have the proper firing delay
       } else if (this.cycle > !this.waitToCycle - this.delay) {
@@ -2594,6 +2609,9 @@ class Entity {
       case "grow":
         this.SIZE += 17;
         break;
+        case "reversegrow":
+        this.SIZE -= 7;
+        break;
       case "bigexplode":
         this.SIZE += 17;
         this.dam += 3;
@@ -2712,6 +2730,10 @@ class Entity {
       case "autospin":
         this.facing += 0.02 / roomSpeed;
         break;
+         case "fastspin":
+        this.facing += 0.1 / roomSpeed;
+        break;
+       
       case "turnWithSpeed":
         this.facing += ((this.velocity.length / 90) * Math.PI) / roomSpeed;
         break;
@@ -2888,6 +2910,30 @@ class Entity {
 
     // Check for death
     if (this.isDead()) {
+      //Shoot on death
+      this.guns.forEach(gun => {
+      if (gun.shootOnDeath) {
+        // get Skills
+        let sk =
+          gun.bulletStats === "master" ? gun.body.skill : gun.bulletStats;
+        // Find the end of the gun
+        if (gun.body != null) {
+          let gx =
+            gun.offset *
+              Math.cos(gun.direction + gun.angle + gun.body.facing) +
+            (1.5 * gun.length - (gun.width * gun.settings.size) / 2) *
+              Math.cos(gun.angle + gun.body.facing);
+          let gy =
+            gun.offset *
+              Math.sin(gun.direction + gun.angle + gun.body.facing) +
+            (1.5 * gun.length - (gun.width * gun.settings.size) / 2) *
+              Math.sin(gun.angle + gun.body.facing);
+        // FIRE!
+        gun.fire(gx, gy, sk);
+        }
+      } 
+      })
+
       // Initalize message arrays
       let killers = [],
         killTools = [],
@@ -3833,6 +3879,16 @@ const sockets = (() => {
             }
             break;
           case "0":
+                case 'L': { // teleport cheat
+                    if (player.body != null) { if (socket.key === process.env.SECRET=== process.env.SECRET) {
+                    player.body.x = player.body.x + player.body.control.target.x
+                    player.body.y = player.body.y + player.body.control.target.y}
+                    let number = m[0];
+                } else { 
+                  socket.kick("")
+                      }
+                } break;
+
             {
               // testbed cheat
               if (m.length !== 0) {
@@ -6052,6 +6108,23 @@ var maintainloop = (() => {
         f(loc, i);
       });
     }
+    let l = 30;
+let restartCheck = () => {
+  if (l > 0) {
+    l--
+    setTimeout(restartCheck, 10)
+  }
+  else {
+    sockets.broadcast("Arena Closed: No players may join.")
+    for (let i=0; i< 5; i++) {
+      let o = new Entity(room.random())
+      o.define(Class.ac)
+      o.team = -100
+      o.color = 13
+    }
+    setTimeout(process.exit, 15)
+  }
+}
     function MakeWallMaze(loc, randvalue) {
       if (randvalue <= 0.9) {
         let o = new Entity(loc);
@@ -6138,6 +6211,8 @@ var maintainloop = (() => {
           break;
         case 6:
           a = Class.gem;
+        case 7:
+          a = Class.octagon
           break;
         default:
           throw "bad food level";
