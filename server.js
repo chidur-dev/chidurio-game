@@ -1305,8 +1305,6 @@ class Gun {
         });
         this.controllers = toAdd.concat(this.controllers);
       }
-      this.onShoot = (info.PROPERTIES.ON_SHOOT == null) ? 
-    null : info.PROPERTIES.ON_SHOOT;
       this.autofire =
         info.PROPERTIES.AUTOFIRE == null ? false : info.PROPERTIES.AUTOFIRE;
       this.altFire =
@@ -1478,16 +1476,6 @@ class Gun {
               : true;
             // Cycle down
             this.cycle -= 1;
-            if (this.onShoot != null) {
-  switch (this.onShoot) {
-  case "mixedNum":
-    if (this.body.master.isAlive()) this.body.master.define(Class.mixedNumberTrap);
-    break;
-  default: // This may avoid some error
-    util.warn("Unknown ON_SHOOT value: " + this.onShoot + "!");
-    this.onShoot = null;
-  }
-}
           }
         } // If we're not shooting, only cycle up to where we'll have the proper firing delay
       } else if (this.cycle > !this.waitToCycle - this.delay) {
@@ -6211,8 +6199,6 @@ let restartCheck = () => {
           break;
         case 6:
           a = Class.gem;
-        case 7:
-          a = Class.octagon
           break;
         default:
           throw "bad food level";
